@@ -88,15 +88,53 @@ Visit **http://localhost:5173** in your browser.
 
 ## Running Tests
 
-```bash
-# All tests (from root)
-npm run test
+### Unit tests (no DB required)
 
-# Backend only
+```bash
+# All unit tests (from root — runs both packages)
+npm test
+
+# Backend unit tests only (33 tests)
 cd packages/backend && npm test
 
-# Frontend only
+# Frontend unit tests only (33 tests)
 cd packages/frontend && npm test
+```
+
+### Integration tests (requires PostgreSQL)
+
+Integration tests call the full CEF handler stack against a real `travelfactory_test` database.
+
+```bash
+# 1. Start PostgreSQL
+docker-compose up -d
+
+# 2. Create the test database (first time only)
+docker exec travelfactory_postgres psql -U tfuser -d postgres \
+  -c "CREATE DATABASE travelfactory_test OWNER tfuser;"
+
+# 3. Run integration tests (18 tests)
+cd packages/backend && npm run test:integration
+
+# Or from root
+npm run test:integration
+```
+
+### All tests
+
+```bash
+# From root: unit + integration (integration needs Docker)
+npm test && npm run test:integration
+```
+
+### Coverage
+
+```bash
+# Backend coverage report
+cd packages/backend && npm run test:coverage
+
+# Frontend coverage report
+cd packages/frontend && npm run test:coverage
 ```
 
 ---
