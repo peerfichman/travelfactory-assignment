@@ -24,13 +24,17 @@ export interface PaginatedResponse<T> {
 
 export const vacationService = {
   async list(params?: {
-    status?: RequestStatus;
-    userId?: string;
+    statuses?: string[];
+    userIds?: string[];
     page?: number;
     limit?: number;
   }): Promise<PaginatedResponse<VacationRequest>> {
+    const { statuses, userIds, ...rest } = params ?? {};
+    const query: Record<string, unknown> = { ...rest };
+    if (statuses && statuses.length > 0) query['status'] = statuses.join(',');
+    if (userIds && userIds.length > 0) query['userId'] = userIds.join(',');
     const { data } = await api.get<PaginatedResponse<VacationRequest>>('/vacation-requests', {
-      params,
+      params: query,
     });
     return data;
   },
@@ -41,6 +45,16 @@ export const vacationService = {
     reason?: string;
   }): Promise<{ id: string }> {
     const { data } = await api.post<{ id: string }>('/vacation-requests', payload);
+    return data;
+  },
+
+  async listTeam(params?: {
+    page?: number;
+    limit?: number;
+  }): Promise<PaginatedResponse<VacationRequest>> {
+    const { data } = await api.get<PaginatedResponse<VacationRequest>>('/vacation-requests/team', {
+      params,
+    });
     return data;
   },
 

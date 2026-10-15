@@ -17,10 +17,14 @@ export const parseListInput = (event: CommonEvent) => {
   try {
     const user = extractAuth(event.headers as Record<string, string>);
     const qs = event.queryStringParameters ?? {};
+    const statuses = qs['status']
+      ? (qs['status'].split(',').filter(Boolean) as RequestStatus[])
+      : [];
+    const userIds = qs['userId'] ? qs['userId'].split(',').filter(Boolean) : [];
     return {
       user,
-      status: qs['status'] as RequestStatus | undefined,
-      userId: qs['userId'],
+      statuses,
+      userIds,
       page: parseInt(qs['page'] ?? '1', 10),
       limit: Math.min(parseInt(qs['limit'] ?? '20', 10), 100),
       _requestId: createRequestId(),
@@ -35,14 +39,14 @@ export const parseListInput = (event: CommonEvent) => {
 
 export const list = async (input: {
   user: ReturnType<typeof extractAuth>;
-  status?: RequestStatus;
-  userId?: string;
+  statuses: RequestStatus[];
+  userIds: string[];
   page: number;
   limit: number;
   _requestId: string;
   _startMs: number;
 }) => {
-  const { user, status, userId, page, limit, _requestId, _startMs } = input;
+  const { user, statuses, userIds, page, limit, _requestId, _startMs } = input;
   const log = requestLogger(_requestId);
   log.info({ method: 'GET', path: '/vacation-requests', role: user.role }, 'HTTP request received');
 
@@ -55,8 +59,8 @@ export const list = async (input: {
     result = { data: requests, total: requests.length, page: 1, limit: requests.length };
   } else {
     const [data, total] = await VacationRequestRepository.findPaginatedForValidator({
-      status,
-      userId,
+      statuses,
+      userIds,
       page,
       limit,
     });
@@ -67,7 +71,7 @@ export const list = async (input: {
     { status: 200, count: result.total, durationMs: Date.now() - _startMs },
     'HTTP response',
   );
-  return result;
+  return new Response(200, result);
 };
 
 // ── Create ────────────────────────────────────────────────────────────────────
@@ -133,6 +137,47 @@ export const create = async (input: {
   }
 };
 
+// ── Team Schedule ─────────────────────────────────────────────────────────────
+
+export const parseTeamInput = (event: CommonEvent) => {
+  try {
+    const user = extractAuth(event.headers as Record<string, string>);
+    const qs = event.queryStringParameters ?? {};
+    return {
+      user,
+      page: parseInt(qs['page'] ?? '1', 10),
+      limit: Math.min(parseInt(qs['limit'] ?? '20', 10), 100),
+      _requestId: createRequestId(),
+      _startMs: Date.now(),
+    };
+  } catch (err) {
+    return new Response((err as { statusCode: number }).statusCode, {
+      error: (err as Error).message,
+    });
+  }
+};
+
+export const listTeam = async (input: {
+  user: ReturnType<typeof extractAuth>;
+  page: number;
+  limit: number;
+  _requestId: string;
+  _startMs: number;
+}) => {
+  const { page, limit, _requestId, _startMs } = input;
+  const log = requestLogger(_requestId);
+  log.info({ method: 'GET', path: '/vacation-requests/team' }, 'HTTP request received');
+
+  const [data, total] = await VacationRequestRepository.findPaginatedForValidator({
+    statuses: [RequestStatus.APPROVED],
+    page,
+    limit,
+  });
+
+  log.info({ status: 200, count: total, durationMs: Date.now() - _startMs }, 'HTTP response');
+  return new Response(200, { data, total, page, limit });
+};
+
 // ── Approve ───────────────────────────────────────────────────────────────────
 
 export const parseApproveInput = (event: CommonEvent) => {
@@ -168,7 +213,7 @@ export const approve = async (input: {
       _requestId,
     );
     log.info({ status: 200, durationMs: Date.now() - _startMs }, 'HTTP response');
-    return { success: true };
+    return new Response(200, { success: true });
   } catch (err) {
     if (err instanceof AppError) {
       log.warn({ status: err.statusCode, durationMs: Date.now() - _startMs }, err.message);
@@ -220,7 +265,7 @@ export const reject = async (input: {
       _requestId,
     );
     log.info({ status: 200, durationMs: Date.now() - _startMs }, 'HTTP response');
-    return { success: true };
+    return new Response(200, { success: true });
   } catch (err) {
     if (err instanceof AppError) {
       log.warn({ status: err.statusCode, durationMs: Date.now() - _startMs }, err.message);

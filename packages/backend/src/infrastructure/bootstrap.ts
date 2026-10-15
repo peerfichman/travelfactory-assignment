@@ -9,6 +9,7 @@ import { rejectVacationRequestHandler } from '../command-handlers/RejectVacation
 import { registerEventHandlers } from '../event-handlers/VacationRequestEventHandlers';
 import * as authHandlers from '../handlers/auth';
 import * as vacationHandlers from '../handlers/vacationRequests';
+import * as userHandlers from '../handlers/users';
 
 export function bootstrap(): void {
   commandBus.register(CreateVacationRequestCommand, createVacationRequestHandler);
@@ -29,5 +30,9 @@ export function bootstrap(): void {
     'handlers/vacationRequests#parseApproveInput': vacationHandlers.parseApproveInput,
     'handlers/vacationRequests#reject': vacationHandlers.reject,
     'handlers/vacationRequests#parseRejectInput': vacationHandlers.parseRejectInput,
+    'handlers/vacationRequests#listTeam': vacationHandlers.listTeam,
+    'handlers/vacationRequests#parseTeamInput': vacationHandlers.parseTeamInput,
+    'handlers/users#listUsers': userHandlers.listUsers,
+    'handlers/users#parseListUsersInput': userHandlers.parseListUsersInput,
   });
 }

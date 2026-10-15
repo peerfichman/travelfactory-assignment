@@ -18,22 +18,17 @@
 
     <!-- Filters -->
     <div class="flex flex-wrap gap-4 mb-6">
-      <select
-        v-model="filterStatus"
-        @change="applyFilters"
-        class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        <option value="">All statuses</option>
-        <option value="Pending">Pending</option>
-        <option value="Approved">Approved</option>
-        <option value="Rejected">Rejected</option>
-      </select>
-
-      <input
-        v-model="filterUserId"
-        @input="applyFilters"
-        placeholder="Filter by user ID"
-        class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+      <CheckboxDropdown
+        v-model="filterStatuses"
+        :options="statusOptions"
+        placeholder="All statuses"
+        @update:modelValue="applyFilters"
+      />
+      <CheckboxDropdown
+        v-model="filterUserIds"
+        :options="userOptions"
+        placeholder="All employees"
+        @update:modelValue="applyFilters"
       />
     </div>
 
@@ -79,19 +74,25 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { useVacationStore } from '../stores/vacationRequests';
-import type { RequestStatus } from '../services/vacation.service';
+import { userService, type User } from '../services/user.service';
 import RequestTable from '../components/RequestTable.vue';
 import RejectModal from '../components/RejectModal.vue';
+import CheckboxDropdown from '../components/CheckboxDropdown.vue';
 
 const auth = useAuthStore();
 const store = useVacationStore();
 const router = useRouter();
 
-const filterStatus = ref<RequestStatus | ''>('');
-const filterUserId = ref('');
+const ALL_STATUSES = ['Pending', 'Approved', 'Rejected'];
+const statusOptions = ALL_STATUSES.map((s) => ({ label: s, value: s }));
+
+const filterStatuses = ref<string[]>([...ALL_STATUSES]);
+const filterUserIds = ref<string[]>([]);
+const users = ref<User[]>([]);
 const currentPage = ref(1);
 const pageLimit = 10;
 
+const userOptions = computed(() => users.value.map((u) => ({ label: u.name, value: u.id })));
 const totalPages = computed(() => Math.max(1, Math.ceil(store.total / pageLimit)));
 
 const rejectTarget = ref<string | null>(null);
@@ -107,9 +108,11 @@ function goToPage(p: number) {
 }
 
 function loadRequests() {
+  const allStatusesSelected = filterStatuses.value.length === ALL_STATUSES.length;
+  const allUsersSelected = filterUserIds.value.length === users.value.length;
   store.fetchRequests({
-    status: filterStatus.value || undefined,
-    userId: filterUserId.value || undefined,
+    statuses: allStatusesSelected ? undefined : filterStatuses.value,
+    userIds: allUsersSelected ? undefined : filterUserIds.value,
     page: currentPage.value,
     limit: pageLimit,
   });
@@ -128,5 +131,9 @@ async function handleReject(id: string, comments: string) {
   rejectTarget.value = null;
 }
 
-onMounted(loadRequests);
+onMounted(async () => {
+  users.value = await userService.list();
+  filterUserIds.value = users.value.map((u) => u.id);
+  loadRequests();
+});
 </script>

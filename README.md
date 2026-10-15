@@ -1,10 +1,12 @@
-# Vacation Management App
+# 🌴 Vacation Management App
 
-A full-stack vacation request management system built for the Travel Factory internship assignment.
+A full-stack vacation request management system — employees can submit time-off requests, managers can review and act on them, all with a clean interface and a solid backend architecture.
+
+Built for the Travel Factory internship assignment.
 
 ---
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
@@ -19,46 +21,23 @@ A full-stack vacation request management system built for the Travel Factory int
 
 ---
 
-## Prerequisites
+## 🚀 Installation & Setup
 
-- Node.js 20+
-- Docker + Docker Compose
-- npm 9+
-
----
-
-## Installation
+The only prerequisite is **Docker + Docker Compose**. One command installs everything, sets up the database, runs migrations, seeds demo users, and starts all three services:
 
 ```bash
-# 1. Clone the repo
 git clone <repo-url>
 cd travelfactory-assignment
-
-# 2. Install all dependencies (root + both packages)
-npm install
+docker compose up --build
 ```
+
+Open **http://localhost:5173** in your browser. That's it! 🎉
+
+> On subsequent runs you don't need `--build` — just `docker compose up`.
 
 ---
 
-## Database Setup
-
-```bash
-# Start PostgreSQL
-docker-compose up -d
-
-# Copy environment file
-cp .env.example .env
-# Edit .env if you need custom DB credentials (defaults work out of the box)
-
-# Run migrations
-cd packages/backend
-npm run migrate
-
-# Seed demo users
-npm run seed
-```
-
-### Demo Users
+## 👤 Demo Users
 
 | Email | Password | Role |
 |-------|----------|------|
@@ -68,122 +47,92 @@ npm run seed
 
 ---
 
-## Running Locally
+## 💻 Manual Setup (local dev with hot-reload)
 
-Open **two terminals**:
+If you prefer to run the services locally — for example to get hot-reload during active development:
+
+**Prerequisites:** Node.js 20+, Docker, npm 9+
+
+```bash
+# Install dependencies
+npm install
+
+# Start only the database
+docker compose up postgres -d
+
+# Run migrations and seed
+cd packages/backend && npm run migrate && npm run seed
+```
+
+Then open two terminals:
 
 ```bash
 # Terminal 1 — Backend (port 8888)
-cd packages/backend
-npm run dev
+cd packages/backend && npm run dev
 
 # Terminal 2 — Frontend (port 5173)
-cd packages/frontend
-npm run dev
+cd packages/frontend && npm run dev
 ```
-
-Visit **http://localhost:5173** in your browser.
 
 ---
 
-## Running Tests
-
-### Unit tests (no DB required)
+## 🧪 Running Tests
 
 ```bash
-# All unit tests (from root — runs both packages)
+# Unit tests (no DB required)
 npm test
 
-# Backend unit tests only (33 tests)
-cd packages/backend && npm test
-
-# Frontend unit tests only (33 tests)
-cd packages/frontend && npm test
-```
-
-### Integration tests (requires PostgreSQL)
-
-Integration tests call the full CEF handler stack against a real `travelfactory_test` database.
-
-```bash
-# 1. Start PostgreSQL
-docker-compose up -d
-
-# 2. Create the test database (first time only)
-docker exec travelfactory_postgres psql -U tfuser -d postgres \
-  -c "CREATE DATABASE travelfactory_test OWNER tfuser;"
-
-# 3. Run integration tests (18 tests)
-cd packages/backend && npm run test:integration
-
-# Or from root
+# Integration tests (requires Docker PostgreSQL running)
 npm run test:integration
-```
 
-### All tests
-
-```bash
-# From root: unit + integration (integration needs Docker)
-npm test && npm run test:integration
-```
-
-### Coverage
-
-```bash
-# Backend coverage report
+# Coverage reports
 cd packages/backend && npm run test:coverage
-
-# Frontend coverage report
 cd packages/frontend && npm run test:coverage
 ```
 
 ---
 
-## Architecture
+## 🏗️ Architecture
 
-### Monorepo
+### Project Structure
 
 ```
 packages/
-  backend/   — Node.js API server
-  frontend/  — Vue 3 SPA
+  backend/   — Node.js API (CEF routing, commands, events, TypeORM)
+  frontend/  — Vue 3 SPA (Pinia stores, Vue Router, Tailwind)
 ```
 
-### Command / Event Pattern
+### Command / Event-Driven Architecture
 
-The backend uses a visible command/event architecture:
+The backend is built around an explicit **command/event pipeline**. Every user action becomes a typed Command that travels through a CommandBus, gets handled by a focused handler, and then emits a Domain Event. This separation keeps business logic, HTTP concerns, and side-effects cleanly decoupled:
 
 ```
-HTTP Request (commoneventframework)
-    ↓
-CEF Handler (thin HTTP layer)
-    ↓  creates
-Command (e.g. CreateVacationRequestCommand)
-    ↓  dispatched via
-CommandBus
-    ↓  handled by
-CommandHandler (business rules, DB write)
-    ↓  emits
-Event (e.g. VacationRequestCreatedEvent)
+HTTP Request
+    ↓  parsed by CEF input parser
+Command  (e.g. CreateVacationRequestCommand)
+    ↓  dispatched via CommandBus
+CommandHandler  — validates rules, writes to DB
+    ↓  publishes
+Event  (e.g. VacationRequestCreatedEvent)
     ↓  consumed by
-EventHandlers (logging, future: notifications)
+EventBus subscribers  — any number of handlers
 ```
 
-- **Commands** are in `packages/backend/src/commands/`
-- **Events** are in `packages/backend/src/events/`
-- **CommandBus** and **EventBus** are in `packages/backend/src/infrastructure/`
+The **EventBus** is built on Node's native `EventEmitter` and allows any part of the system to **subscribe to domain events without the publisher knowing who is listening**. Today the subscribers log structured events; tomorrow you can add email notifications, Slack alerts, or an audit trail — all by registering a new subscriber, with zero changes to the business logic that publishes the event. This is the key architectural benefit: stakeholders (email service, audit service, analytics) can be added independently and at any time.
 
-### commoneventframework
+Events are named by their class (`event.constructor.name`), making the full event catalog self-documenting and type-safe.
 
-[commoneventframework](https://www.npmjs.com/package/commoneventframework) is Travel Factory's Lambda routing library. Routes are declared in `src/root.yaml` (OpenAPI + `x-handler` fields). In development, the `--local` flag starts a local HTTP server on port 8888, simulating API Gateway.
+### commoneventframework (CEF)
+
+[commoneventframework](https://www.npmjs.com/package/commoneventframework) is Travel Factory's Lambda routing library. Routes and their handlers are declared in `src/root.yaml` (OpenAPI + `x-handler` extension fields). In development, the `--local` flag starts a local HTTP server on port 8888 that simulates API Gateway — no AWS setup required.
 
 ### Authentication
 
-JWT-based auth. The `/auth/login` endpoint issues a signed token. All protected endpoints extract the token from `Authorization: Bearer <token>` and verify it via the `requireAuth` middleware. Role-based access control is enforced in the input parsers before command dispatch.
+JWT-based. `/auth/login` issues a signed token; all protected routes verify it via `requireAuth` middleware. Role-based access control (Requester / Validator) is enforced in the input parsers before any command is dispatched.
 
 ---
 
-## API Endpoints
+## 📡 API Endpoints
 
 | Method | Path | Role | Description |
 |--------|------|------|-------------|
@@ -192,15 +141,15 @@ JWT-based auth. The `/auth/login` endpoint issues a signed token. All protected 
 | POST | `/vacation-requests` | Requester | Submit a new request |
 | PATCH | `/vacation-requests/:id/approve` | Validator | Approve a request |
 | PATCH | `/vacation-requests/:id/reject` | Validator | Reject with a comment |
-
-Query params for `GET /vacation-requests` (Validator): `?status=&userId=&page=&limit=`
+| GET | `/vacation-requests/team` | Any | All approved vacations (team planning view) |
+| GET | `/users` | Validator | List all requesters (for filter dropdown) |
 
 ---
 
-## Business Rules
+## 📋 Business Rules
 
 1. End date must be strictly after start date
-2. No overlapping vacation requests for the same user
+2. Vacation requests cannot overlap for the same user
 3. Approved requests cannot be modified
 4. Start date cannot be in the past
 5. Rejection requires a non-empty comment
@@ -208,31 +157,27 @@ Query params for `GET /vacation-requests` (Validator): `?status=&userId=&page=&l
 
 ---
 
-## Git Hooks
+## 🔧 Technical Decisions
 
-- **pre-commit**: runs `lint-staged` (ESLint + Prettier on staged files)
-- **pre-push**: runs the full test suite — push is blocked if any test fails
+**Event-driven architecture** — The Command/Event pattern was chosen to make the system's behaviour explicit and extensible. Publishing a `VacationRequestApprovedEvent` after an approval decouples the core business logic from all downstream concerns. Any new stakeholder (notifications, audit logs, analytics) subscribes to the event independently — the approval handler never needs to change.
 
----
+**Observability as a first-class concern** — Structured JSON logging (pino) is used throughout with a `requestId` correlation ID on every request. Each command dispatch, event publication, and HTTP response is logged with context (userId, role, duration, status code). This makes the system easy to trace and debug, and forms the foundation for a production monitoring setup.
 
-## Technical Decisions
+**commoneventframework local mode** — the `--local` flag turns the Lambda handler into a standard HTTP server for local development, with zero AWS configuration needed. This keeps the development experience identical to the production Lambda deployment.
 
-**npm workspaces** — simplest monorepo setup with no extra tooling overhead.
+**TypeORM with migrations** — the schema is versioned and reproducible. `synchronize: false` prevents any accidental schema drift; every schema change goes through an explicit migration file.
 
-**commoneventframework local mode** — the `--local` flag turns the Lambda handler into a standard HTTP server for local development, no AWS setup needed.
+**npm workspaces** — the simplest monorepo setup, no extra tooling (Turborepo, Nx) needed at this scale.
 
-**Custom EventBus** — wraps Node.js's built-in `EventEmitter`, keeping the architecture visible and dependency-free. Events are named by class (`event.constructor.name`), making the event catalog self-documenting.
+**Pinia** — the official Vue 3 state management library. Simpler and more TypeScript-friendly than Vuex.
 
-**TypeORM with migrations** — schema is versioned and reproducible. The `synchronize: false` setting ensures no accidental schema drift in production.
-
-**Pinia** — the official Vue 3 state management solution, simpler than Vuex with full TypeScript support.
+**Testing strategy** — the project was developed with significant test coverage: 33 backend unit tests (handlers, middleware, infrastructure), 18 integration tests that exercise the full CEF routing stack against a real PostgreSQL test database, and 33 frontend unit tests (components and stores). Git hooks block any push that breaks the test suite.
 
 ---
 
-## Known Limitations
+## ⚠️ Known Limitations
 
-- No email notifications (event handlers log to console only)
-- Transitive vulnerability warnings in `commoneventframework` and Jest dependencies — these come from the package's own deps and do not affect runtime security in this local dev context
-- No refresh token mechanism — JWT tokens expire after 8 hours
-- No file upload / attachment support for vacation requests
-- Frontend does not handle token expiry gracefully (redirects to login on 401 but no silent refresh)
+- **Event handlers only log** — the event-driven architecture is fully wired, but current subscribers only write structured log entries. Plugging in real notifications (email, Slack) means adding a subscriber — the pipeline is ready.
+- **No refresh token** — JWT tokens expire after 8 hours; the frontend redirects to login on 401 but does not silently refresh.
+- **No attachment support** — vacation requests support a text reason field only; file uploads are not implemented.
+- **Dependency warnings** — transitive vulnerability warnings from `commoneventframework` and Jest deps come from those packages' own dependencies and do not affect runtime security in this local context.

@@ -2,6 +2,8 @@ import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { fileURLToPath, URL } from 'node:url';
 
+const apiTarget = process.env.API_TARGET ?? 'http://localhost:8888';
+
 export default defineConfig({
   plugins: [vue()],
   resolve: {
@@ -10,13 +12,12 @@ export default defineConfig({
     },
   },
   server: {
+    host: '0.0.0.0',
     port: 5173,
     proxy: {
-      '/api': {
-        target: 'http://localhost:8888',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
-      },
+      '/auth': { target: apiTarget, changeOrigin: true },
+      '/vacation-requests': { target: apiTarget, changeOrigin: true },
+      '/users': { target: apiTarget, changeOrigin: true },
     },
   },
   test: {

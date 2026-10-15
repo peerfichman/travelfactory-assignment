@@ -28,6 +28,10 @@ const browserGlobals = {
   navigator: 'readonly',
   fetch: 'readonly',
   console: 'readonly',
+  HTMLElement: 'readonly',
+  MouseEvent: 'readonly',
+  Node: 'readonly',
+  Event: 'readonly',
 };
 
 const jestGlobals = {

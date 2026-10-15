@@ -40,5 +40,8 @@ export const login = async (input: {
     { status: 200, userId: user.id, role: user.role, durationMs: Date.now() - input._startMs },
     'HTTP response',
   );
-  return { token, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
+  return new Response(200, {
+    token,
+    user: { id: user.id, name: user.name, email: user.email, role: user.role },
+  });
 };

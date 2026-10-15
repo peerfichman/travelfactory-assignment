@@ -1,10 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import {
-  vacationService,
-  type VacationRequest,
-  type RequestStatus,
-} from '../services/vacation.service';
+import { vacationService, type VacationRequest } from '../services/vacation.service';
 
 export const useVacationStore = defineStore('vacationRequests', () => {
   const requests = ref<VacationRequest[]>([]);
@@ -15,8 +11,8 @@ export const useVacationStore = defineStore('vacationRequests', () => {
   const error = ref<string | null>(null);
 
   async function fetchRequests(params?: {
-    status?: RequestStatus;
-    userId?: string;
+    statuses?: string[];
+    userIds?: string[];
     page?: number;
     limit?: number;
   }) {

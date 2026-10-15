@@ -17,20 +17,20 @@ export const VacationRequestRepository = AppDataSource.getRepository(VacationReq
   },
 
   findPaginatedForValidator(options: {
-    status?: RequestStatus;
-    userId?: string;
+    statuses?: RequestStatus[];
+    userIds?: string[];
     page: number;
     limit: number;
   }) {
-    const { status, userId, page, limit } = options;
+    const { statuses, userIds, page, limit } = options;
     const qb = this.createQueryBuilder('vr')
       .leftJoinAndSelect('vr.user', 'user')
       .orderBy('vr.created_at', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
 
-    if (status) qb.andWhere('vr.status = :status', { status });
-    if (userId) qb.andWhere('vr.user_id = :userId', { userId });
+    if (statuses && statuses.length > 0) qb.andWhere('vr.status IN (:...statuses)', { statuses });
+    if (userIds && userIds.length > 0) qb.andWhere('vr.user_id IN (:...userIds)', { userIds });
 
     return qb.getManyAndCount();
   },

@@ -14,10 +14,41 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-tfuser}']
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-tfuser} -d postgres']
       interval: 10s
       timeout: 5s
       retries: 5
+
+  backend:
+    build:
+      context: ./packages/backend
+      dockerfile: Dockerfile
+    ports:
+      - '8888:8888'
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: tfuser
+      POSTGRES_PASSWORD: tfpassword
+      POSTGRES_DB: travelfactory
+      JWT_SECRET: change-this-to-a-long-random-secret
+      JWT_EXPIRES_IN: 8h
+      PORT: 8888
+      NODE_ENV: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./packages/frontend
+      dockerfile: Dockerfile
+    ports:
+      - '5173:5173'
+    environment:
+      API_TARGET: http://backend:8888
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:

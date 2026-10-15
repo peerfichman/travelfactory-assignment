@@ -70,9 +70,14 @@ describe('login handler', () => {
 
     const result = await login(validInput);
 
-    expect(result).toHaveProperty('token');
-    expect(result).toMatchObject({
-      user: { id: 'user-1', email: 'alice@example.com', role: UserRole.REQUESTER },
+    expect(result).toBeInstanceOf(Response);
+    expect((result as Response).statusCode).toBe(200);
+    const body = JSON.parse((result as Response).body);
+    expect(body).toHaveProperty('token');
+    expect(body.user).toMatchObject({
+      id: 'user-1',
+      email: 'alice@example.com',
+      role: UserRole.REQUESTER,
     });
   });
 

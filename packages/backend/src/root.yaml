@@ -31,6 +31,19 @@ paths:
         '401':
           description: Invalid credentials
 
+  /users:
+    get:
+      summary: List all requesters (Validator only)
+      x-handler: handlers/users#listUsers
+      x-inputParser: handlers/users#parseListUsersInput
+      responses:
+        '200':
+          description: List of requester users
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
   /vacation-requests:
     get:
       summary: List vacation requests (own for Requester, all for Validator)
@@ -88,6 +101,28 @@ paths:
           description: Validation error
         '409':
           description: Overlapping request
+
+  /vacation-requests/team:
+    get:
+      summary: List all approved vacation requests for team planning (any authenticated user)
+      x-handler: handlers/vacationRequests#listTeam
+      x-inputParser: handlers/vacationRequests#parseTeamInput
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated list of approved team vacations
+        '401':
+          description: Unauthorized
 
   /vacation-requests/:id/approve:
     patch:

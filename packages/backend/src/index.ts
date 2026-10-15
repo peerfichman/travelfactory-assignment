@@ -8,7 +8,13 @@ import { bootstrap } from './infrastructure/bootstrap';
 import { logger } from './infrastructure/logger';
 
 // CEF imports — must come after env is loaded
-import { loadEnv, buildCommonEvent, getRouteConfig, resolveHandlerRef } from 'commoneventframework';
+import {
+  loadEnv,
+  buildCommonEvent,
+  getRouteConfig,
+  resolveHandlerRef,
+  startDevServer,
+} from 'commoneventframework';
 import { Response } from 'commoneventframework';
 
 const ROOT_YAML = path.join(__dirname, 'root.yaml');
@@ -54,14 +60,19 @@ export const handler = async (event: unknown, _context?: unknown): Promise<unkno
   return handlerFn(input, commonEvent);
 };
 
-// When run with --local flag, CEF starts its own HTTP server
+// When run with --local flag, start the CEF dev HTTP server on port 8888
 if (require.main === module) {
   (async () => {
     if (!AppDataSource.isInitialized) {
       await AppDataSource.initialize();
       logger.info('Database connected');
     }
-    logger.info({ port: process.env.PORT ?? 8888 }, 'Backend ready');
+    if (process.argv.includes('--local')) {
+      startDevServer(handler);
+      logger.info({ port: process.env.PORT ?? 8888 }, 'Backend ready (local mode)');
+    } else {
+      logger.info('Handler exported for Lambda');
+    }
   })().catch((err) => {
     logger.error(err, 'Failed to start');
     process.exit(1);
