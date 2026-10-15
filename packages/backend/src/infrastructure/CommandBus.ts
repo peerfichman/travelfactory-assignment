@@ -5,7 +5,7 @@ type CommandHandler<T> = (command: T, requestId?: string) => Promise<any>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type CommandConstructor<T> = new (...args: any[]) => T;
 
-class CommandBus {
+export class CommandBus {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private readonly handlers = new Map<string, CommandHandler<any>>();
 

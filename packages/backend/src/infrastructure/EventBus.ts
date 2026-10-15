@@ -4,7 +4,7 @@ import { logger } from './logger';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type EventConstructor<T> = new (...args: any[]) => T;
 
-class EventBus extends EventEmitter {
+export class EventBus extends EventEmitter {
   publish(event: object, requestId?: string): void {
     const name = event.constructor.name;
     const log = requestId ? logger.child({ requestId }) : logger;
