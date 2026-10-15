@@ -5,10 +5,12 @@ const config: Config = {
   testEnvironment: 'node',
   rootDir: '.',
   testMatch: ['**/__tests__/integration/**/*.test.ts'],
+  setupFiles: ['<rootDir>/__tests__/setup/setTestEnv.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   testTimeout: 30000,
+  maxWorkers: 1,
   collectCoverageFrom: ['src/**/*.ts', '!src/generated/**'],
   coverageDirectory: 'coverage-integration',
 };

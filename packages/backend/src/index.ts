@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
+import path from 'path';
 import { AppDataSource } from './infrastructure/database';
 import { bootstrap } from './infrastructure/bootstrap';
 import { logger } from './infrastructure/logger';
@@ -9,6 +10,8 @@ import { logger } from './infrastructure/logger';
 // CEF imports — must come after env is loaded
 import { loadEnv, buildCommonEvent, getRouteConfig, resolveHandlerRef } from 'commoneventframework';
 import { Response } from 'commoneventframework';
+
+const ROOT_YAML = path.join(__dirname, 'root.yaml');
 
 // Register commands and event handlers
 bootstrap();
@@ -24,22 +27,28 @@ export const handler = async (event: unknown, _context?: unknown): Promise<unkno
     logger.info('Database connected');
   }
 
-  const commonEvent = await buildCommonEvent(event);
+  const commonEvent = await buildCommonEvent(event, ROOT_YAML);
   const routeConfig = getRouteConfig(commonEvent);
 
   if (!routeConfig) {
     return new Response(404, { error: 'Route not found' });
   }
 
-  const handlerFn = resolveHandlerRef(routeConfig['x-handler'] as string);
-  const parserRef = routeConfig['x-inputParser'] as string | undefined;
+  const handlerRef = routeConfig.handler;
+  if (!handlerRef) return new Response(500, { error: 'Handler not configured' });
 
+  const handlerFn = resolveHandlerRef(handlerRef);
+  if (!handlerFn) return new Response(500, { error: `Handler not found: ${handlerRef}` });
+
+  const parserRef = routeConfig.inputParser;
   let input: unknown = {};
   if (parserRef) {
     const parserFn = resolveHandlerRef(parserRef);
-    input = await parserFn(commonEvent);
-    // If parser returned a Response, return it directly (validation error)
-    if (input instanceof Response) return input;
+    if (parserFn) {
+      input = await parserFn(commonEvent);
+      // If parser returned a Response, return it directly (validation error)
+      if (input instanceof Response) return input;
+    }
   }
 
   return handlerFn(input, commonEvent);

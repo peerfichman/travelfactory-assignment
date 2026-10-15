@@ -5,6 +5,7 @@ const config: Config = {
   testEnvironment: 'node',
   rootDir: '.',
   testMatch: ['**/__tests__/**/*.test.ts'],
+  testPathIgnorePatterns: ['/node_modules/', '/__tests__/integration/'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },

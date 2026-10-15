@@ -123,7 +123,7 @@ export const create = async (input: {
       _requestId,
     );
     log.info({ status: 201, durationMs: Date.now() - _startMs }, 'HTTP response');
-    return new Response(201, result);
+    return new Response(201, result as object);
   } catch (err) {
     if (err instanceof AppError) {
       log.warn({ status: err.statusCode, durationMs: Date.now() - _startMs }, err.message);
