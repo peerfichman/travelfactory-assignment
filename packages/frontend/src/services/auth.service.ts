@@ -1,0 +1,18 @@
+import { api } from './api';
+
+export interface LoginResponse {
+  token: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: 'Requester' | 'Validator';
+  };
+}
+
+export const authService = {
+  async login(email: string, password: string): Promise<LoginResponse> {
+    const { data } = await api.post<LoginResponse>('/auth/login', { email, password });
+    return data;
+  },
+};

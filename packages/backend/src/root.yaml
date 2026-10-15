@@ -1,0 +1,128 @@
+openapi: 3.0.3
+info:
+  title: Vacation Management API
+  version: 1.0.0
+  description: REST API for vacation request management
+
+paths:
+  /auth/login:
+    post:
+      summary: Authenticate a user and receive a JWT token
+      x-handler: handlers/auth#login
+      x-inputParser: handlers/auth#parseLoginInput
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful, returns JWT token
+        '400':
+          description: Missing fields
+        '401':
+          description: Invalid credentials
+
+  /vacation-requests:
+    get:
+      summary: List vacation requests (own for Requester, all for Validator)
+      x-handler: handlers/vacationRequests#list
+      x-inputParser: handlers/vacationRequests#parseListInput
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [Pending, Approved, Rejected]
+        - in: query
+          name: userId
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated list of vacation requests
+        '401':
+          description: Unauthorized
+    post:
+      summary: Submit a new vacation request (Requester only)
+      x-handler: handlers/vacationRequests#create
+      x-inputParser: handlers/vacationRequests#parseCreateInput
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [startDate, endDate]
+              properties:
+                startDate:
+                  type: string
+                  format: date
+                endDate:
+                  type: string
+                  format: date
+                reason:
+                  type: string
+      responses:
+        '201':
+          description: Request created
+        '400':
+          description: Validation error
+        '409':
+          description: Overlapping request
+
+  /vacation-requests/:id/approve:
+    patch:
+      summary: Approve a vacation request (Validator only)
+      x-handler: handlers/vacationRequests#approve
+      x-inputParser: handlers/vacationRequests#parseApproveInput
+      responses:
+        '200':
+          description: Request approved
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+
+  /vacation-requests/:id/reject:
+    patch:
+      summary: Reject a vacation request with a comment (Validator only)
+      x-handler: handlers/vacationRequests#reject
+      x-inputParser: handlers/vacationRequests#parseRejectInput
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [comments]
+              properties:
+                comments:
+                  type: string
+      responses:
+        '200':
+          description: Request rejected
+        '400':
+          description: Missing comment
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
