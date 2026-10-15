@@ -15,6 +15,6 @@
     "sourceMap": true,
     "declaration": true
   },
-  "include": ["src/**/*", "seeds/**/*", "migrations/**/*"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "__tests__"]
 }
