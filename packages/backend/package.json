@@ -11,6 +11,8 @@
     "migrate:revert": "typeorm-ts-node-commonjs migration:revert -d src/infrastructure/database.ts",
     "seed": "ts-node seeds/seed.ts",
     "test": "jest",
+    "test:integration": "jest --config jest.integration.config.ts",
+    "test:all": "jest && jest --config jest.integration.config.ts",
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {
