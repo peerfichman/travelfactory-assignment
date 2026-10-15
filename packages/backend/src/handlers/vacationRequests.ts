@@ -1,4 +1,5 @@
-import { CommonEvent, Response } from 'commoneventframework';
+import { Response } from 'commoneventframework';
+import type { CommonEvent } from '../types/cef';
 import { commandBus } from '../infrastructure/CommandBus';
 import { CreateVacationRequestCommand } from '../commands/CreateVacationRequestCommand';
 import { ApproveVacationRequestCommand } from '../commands/ApproveVacationRequestCommand';

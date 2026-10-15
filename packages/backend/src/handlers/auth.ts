@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
-import { CommonEvent, Response } from 'commoneventframework';
+import { Response } from 'commoneventframework';
+import type { CommonEvent } from '../types/cef';
 import { UserRepository } from '../repositories/UserRepository';
 import { signToken } from '../infrastructure/jwt';
 import { createRequestId, requestLogger } from '../infrastructure/requestContext';
