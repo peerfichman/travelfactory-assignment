@@ -15,6 +15,7 @@ export class AppError extends Error {
 
 export async function createVacationRequestHandler(
   command: CreateVacationRequestCommand,
+  requestId?: string,
 ): Promise<{ id: string }> {
   const { userId, startDate, endDate, reason } = command;
 
@@ -40,7 +41,10 @@ export async function createVacationRequestHandler(
 
   const saved = await VacationRequestRepository.save(request);
 
-  eventBus.publish(new VacationRequestCreatedEvent(saved.id, userId, startDate, endDate));
+  eventBus.publish(
+    new VacationRequestCreatedEvent(saved.id, userId, startDate, endDate),
+    requestId,
+  );
 
   return { id: saved.id };
 }

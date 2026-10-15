@@ -7,14 +7,15 @@ import { AppError } from './CreateVacationRequestHandler';
 
 export async function rejectVacationRequestHandler(
   command: RejectVacationRequestCommand,
+  requestId?: string,
 ): Promise<void> {
-  const { requestId, validatorId, comments } = command;
+  const { requestId: vacReqId, validatorId, comments } = command;
 
   if (!comments || comments.trim().length === 0) {
     throw new AppError(400, 'A rejection comment is required');
   }
 
-  const request = await VacationRequestRepository.findOne({ where: { id: requestId } });
+  const request = await VacationRequestRepository.findOne({ where: { id: vacReqId } });
   if (!request) throw new AppError(404, 'Vacation request not found');
   if (request.status === RequestStatus.APPROVED) {
     throw new AppError(409, 'Approved requests cannot be modified');
@@ -25,6 +26,7 @@ export async function rejectVacationRequestHandler(
   await VacationRequestRepository.save(request);
 
   eventBus.publish(
-    new VacationRequestRejectedEvent(requestId, request.user_id, validatorId, comments),
+    new VacationRequestRejectedEvent(vacReqId, request.user_id, validatorId, comments),
+    requestId,
   );
 }

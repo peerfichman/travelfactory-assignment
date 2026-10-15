@@ -5,9 +5,10 @@ import { logger } from './logger';
 type EventConstructor<T> = new (...args: any[]) => T;
 
 class EventBus extends EventEmitter {
-  publish(event: object): void {
+  publish(event: object, requestId?: string): void {
     const name = event.constructor.name;
-    logger.info({ event: name }, `Event published: ${name}`);
+    const log = requestId ? logger.child({ requestId }) : logger;
+    log.info({ event: name }, `Event published: ${name}`);
     this.emit(name, event);
   }
 
